@@ -22,6 +22,7 @@ const game = new Phaser.Game(config)
 function preload() {
   this.load.image('ship', 'assets/spaceShips_001.png')
   this.load.image('otherPlayer', 'assets/enemyBlack5.png')
+  this.load.image('star', 'assets/star_gold.png')
 }
 
 function create() {
@@ -59,6 +60,22 @@ function create() {
         otherPlayer.setPosition(playerInfo.x, playerInfo.y)
       }
     })
+  })
+
+  this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF'})
+  this.redScoreText = this.add.text(584, 16, '', { fontSize: '32px', fill: '#FF0000'})
+
+  this.socket.on('scoreUpdate', function(scores) {
+    self.blueScoreText.setText('Blue: ' + scores.blue)
+    self.redScoreText.setText('Red: ' + scores.red)
+  })
+
+  this.socket.on('starLocation', function(starLocation) {
+    if (self.star) { self.star.destroy() }
+    self.star = self.physics.add.image(starLocation.x, starLocation.y, 'star')
+    self.physics.add.overlap(self.ship, self.star, function() {
+      this.socket.emit('starCollected')
+    }, null, self)
   })
 }
 
