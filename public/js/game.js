@@ -26,12 +26,16 @@ function preload() {
 
 function create() {
   var self = this
-  this.otherPlayers = this.physics.add.group()
   this.socket = io()
+  this.otherPlayers = this.physics.add.group()
+  this.cursors = this.input.keyboard.createCursorKeys()
+
   this.socket.on('currentPlayers', function(players) {
     Object.keys(players).forEach(function(id) {
       if (players[id].playerId === self.socket.id) {
         addPlayer(self, players[id])
+      } else {
+        addOtherPlayers(self, players[id])
       }
     })
   })
@@ -48,25 +52,52 @@ function create() {
     })
   })
 
-  this.cursors = this.input.keyboard.createCursorKeys()
+  this.socket.on('playerMoved', function(playerInfo) {
+    self.otherPlayers.getChildren().forEach(function(otherPlayer) {
+      if (playerInfo.playerId === otherPlayer.playerId) {
+        otherPlayer.setRotation(playerInfo.rotation)
+        otherPlayer.setPosition(playerInfo.x, playerInfo.y)
+      }
+    })
+  })
 }
 
 function update() {
   if (this.ship) {
+    // detect input
     if (this.cursors.left.isDown) {
-      this.ship.setAngularVelocity(-150);
+      this.ship.setAngularVelocity(-150)
     } else if (this.cursors.right.isDown) {
-      this.ship.setAngularVelocity(150);
+      this.ship.setAngularVelocity(150)
     } else {
-      this.ship.setAngularVelocity(0);
+      this.ship.setAngularVelocity(0)
     }
 
     if (this.cursors.up.isDown) {
-      this.physics.velocityFromRotation(this.ship.rotation + 1.5, 100, this.ship.body.acceleration);
+      this.physics.velocityFromRotation(this.ship.rotation + 1.5, 100, this.ship.body.acceleration)
     } else {
-      this.ship.setAcceleration(0);
+      this.ship.setAcceleration(0)
     }
-    this.physics.world.wrap(this.ship, 5);
+
+    this.physics.world.wrap(this.ship, 5)
+
+    // emit player movement
+    var x = this.ship.x
+    var y = this.ship.y
+    var r = this.ship.rotation
+    if (this.ship.oldPosition && (x !== this.ship.oldPosition.x || y !== this.ship.oldPosition.y || r !== this.ship.oldPosition.rotation)) {
+      this.socket.emit('playerMovement', {
+        x: this.ship.x,
+        y: this.ship.y,
+        rotation: this.ship.rotation
+      })
+    }
+    // save old position data
+    this.ship.oldPosition = {
+      x: this.ship.x,
+      y: this.ship.y,
+      rotation: this.ship.rotation
+    }
   }
 }
 

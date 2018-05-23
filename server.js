@@ -30,6 +30,17 @@ io.on('connection', function(socket) {
   // update all other players of the new player
   socket.broadcast.emit('newPlayer', players[socket.id])
 
+  // when a player moves, update the player data
+  socket.on('playerMovement', function(movementData) {
+    players[socket.id].x = movementData.x
+    players[socket.id].y = movementData.y
+    players[socket.id].rotation = movementData.rotation
+
+    console.log(socket.id + ' moved:', movementData)
+    // emit a message to all players about the player that moved
+    socket.broadcast.emit('playerMoved', players[socket.id])
+  })
+
   // disconnect
   socket.on('disconnect', function() {
     console.log('user disconnected', socket.id)
@@ -38,4 +49,5 @@ io.on('connection', function(socket) {
     // emit a message to all player to remove this player
     io.emit('disconnect', socket.id)
   })
+
 })
